@@ -1,0 +1,66 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Environments (uv & standard) ---
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Environment Variables (CRITICAL) ---
+# Never commit your MongoDB URI or secret keys!
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.flaskenv
+
+# --- Testing ---
+.target/
+.pytest_cache/
+.coverage
+htmlcov/
+.noseresults/
+.tox/
+.nox/
+.hypothesis/
+
+# --- Database ---
+# If you ever run a local MongoDB instance and store data in the project
+*.db
+*.sqlite3
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# claude config
+.claude/
+
+# extra file
+practise.py 

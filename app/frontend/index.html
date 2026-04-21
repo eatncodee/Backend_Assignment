@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .hidden { display: none !important; }
+
+        /* AUTH */
+        #auth-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .auth-box {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 40px;
+            width: 360px;
+        }
+
+        .auth-box h1 {
+            font-size: 22px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .auth-box p {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 28px;
+        }
+
+        .tab-btns {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #2a2a2a;
+            background: transparent;
+            color: #666;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #6c63ff;
+            border-color: #6c63ff;
+            color: #fff;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+            margin-bottom: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #6c63ff;
+        }
+
+        button.primary {
+            width: 100%;
+            padding: 11px;
+            background: #6c63ff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button.primary:hover { background: #574fd6; }
+
+        .error-msg {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        /* APP */
+        #app-screen {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .app-header h1 { font-size: 20px; color: #fff; }
+
+        .ws-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .ws-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #444;
+        }
+
+        .ws-dot.connected { background: #4caf50; }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid #2a2a2a;
+            color: #666;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
+
+        /* ADD TASK */
+        .add-task-box {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .add-task-box h2 { font-size: 14px; color: #888; margin-bottom: 16px; }
+
+        .task-form-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .task-form-row input { margin-bottom: 0; flex: 1; }
+        .task-form-row select { margin-bottom: 0; width: 130px; flex-shrink: 0; }
+
+        .add-task-box textarea {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            resize: none;
+            height: 60px;
+        }
+
+        .add-task-box button.primary {
+            margin-top: 4px;
+        }
+
+        /* TASK LIST */
+        #task-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .task-card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .task-card:hover { border-color: #333; }
+
+        .task-card.completed { opacity: 0.5; }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            accent-color: #6c63ff;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .task-body { flex: 1; }
+
+        .task-title {
+            font-size: 15px;
+            color: #e0e0e0;
+            margin-bottom: 4px;
+        }
+
+        .task-title.done { text-decoration: line-through; color: #555; }
+
+        .task-desc {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .priority-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .priority-badge.low { background: #1a3a1a; color: #4caf50; }
+        .priority-badge.medium { background: #3a2a00; color: #ffb300; }
+        .priority-badge.high { background: #3a1a1a; color: #ff5252; }
+
+        .task-date { font-size: 11px; color: #444; }
+
+        .task-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        .icon-btn {
+            background: transparent;
+            border: 1px solid #2a2a2a;
+            color: #555;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover { border-color: #6c63ff; color: #6c63ff; }
+        .icon-btn.delete:hover { border-color: #ff5252; color: #ff5252; }
+
+        /* EDIT MODAL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 28px;
+            width: 400px;
+        }
+
+        .modal h2 { font-size: 16px; margin-bottom: 20px; color: #fff; }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .modal-actions button { flex: 1; }
+
+        button.secondary {
+            padding: 11px;
+            background: transparent;
+            color: #666;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button.secondary:hover { border-color: #444; color: #aaa; }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-size: 13px;
+            color: #e0e0e0;
+            z-index: 200;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.green { border-color: #4caf50; color: #4caf50; }
+        .toast.red { border-color: #ff5252; color: #ff5252; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #444;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+    <div class="auth-box">
+        <h1>Task Monitor</h1>
+        <p>Real-time task tracking</p>
+
+        <div class="tab-btns">
+            <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+            <button class="tab-btn" onclick="switchTab('register')">Register</button>
+        </div>
+
+        <div id="error-msg" class="error-msg"></div>
+
+        <!-- LOGIN -->
+        <div id="login-form">
+            <input type="email" id="login-email" placeholder="Email" />
+            <input type="password" id="login-password" placeholder="Password" />
+            <button class="primary" onclick="login()">Login</button>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="register-form" class="hidden">
+            <input type="email" id="reg-email" placeholder="Email" />
+            <input type="password" id="reg-password" placeholder="Password" />
+            <button class="primary" onclick="register()">Create Account</button>
+        </div>
+    </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen" class="hidden">
+    <div class="app-header">
+        <div>
+            <h1>My Tasks</h1>
+            <div class="ws-status">
+                <div class="ws-dot" id="ws-dot"></div>
+                <span id="ws-label">Connecting...</span>
+            </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- ADD TASK -->
+    <div class="add-task-box">
+        <h2>NEW TASK</h2>
+        <div class="task-form-row">
+            <input type="text" id="new-task-title" placeholder="Task title" />
+            <select id="new-task-priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+            </select>
+        </div>
+        <textarea id="new-task-desc" placeholder="Description (optional)"></textarea>
+        <button class="primary" onclick="createTask()">Add Task</button>
+    </div>
+
+    <!-- TASK LIST -->
+    <div id="task-list"></div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay hidden" id="edit-modal">
+    <div class="modal">
+        <h2>Edit Task</h2>
+        <input type="text" id="edit-title" placeholder="Task title" />
+        <textarea id="edit-desc" placeholder="Description"></textarea>
+        <select id="edit-priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+        </select>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+            <input type="checkbox" id="edit-completed" style="width:auto; margin:0;" />
+            <label style="font-size:13px; color:#888;">Mark as completed</label>
+        </div>
+        <div class="modal-actions">
+            <button class="secondary" onclick="closeModal()">Cancel</button>
+            <button class="primary" onclick="saveEdit()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+    const API = 'http://localhost:8000';
+    let token = localStorage.getItem('token') || null;
+    let ws = null;
+    let editingId = null;
+    let localTasks = {};
+
+    // ── INIT ──────────────────────────────────────────────
+    if (token) showApp();
+
+    // ── AUTH ──────────────────────────────────────────────
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach((b, i) => {
+            b.classList.toggle('active', (tab === 'login' ? i === 0 : i === 1));
+        });
+        document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+        document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+        hideError();
+    }
+
+    async function login() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        if (!email || !password) return showError('Fill in all fields');
+
+        const res = await fetch(`${API}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            const errorMsg = Array.isArray(data.detail) ? data.detail[0].msg.replace('Value error, ', '') : data.detail;
+            return showError(errorMsg || 'Login failed');
+        }
+
+        token = data.token;
+        localStorage.setItem('token', token);
+        showApp();
+    }
+
+    async function register() {
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+        if (!email || !password) return showError('Fill in all fields');
+
+        const res = await fetch(`${API}/user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            const errorMsg = Array.isArray(data.detail) ? data.detail[0].msg.replace('Value error, ', '') : data.detail;
+            return showError(errorMsg || 'Registration failed');
+        }
+
+        showToast('Account created — please login', 'green');
+        switchTab('login');
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        token = null;
+        if (ws) ws.close();
+        localTasks = {};
+        document.getElementById('app-screen').classList.add('hidden');
+        document.getElementById('auth-screen').classList.remove('hidden');
+    }
+
+    // ── APP ───────────────────────────────────────────────
+    async function showApp() {
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('app-screen').classList.remove('hidden');
+        await loadTasks();
+        connectWS();
+    }
+
+    async function loadTasks() {
+        const res = await fetch(`${API}/alltasks`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return logout();
+        const data = await res.json();
+        localTasks = {};
+        data.tasks.forEach(t => localTasks[t._id] = t);
+        renderTasks();
+    }
+
+    // ── WEBSOCKET ─────────────────────────────────────────
+    function connectWS() {
+        if (!token) return;
+        ws = new WebSocket(`ws://localhost:8000/ws?token=${token}`);
+
+        ws.onopen = () => {
+            document.getElementById('ws-dot').classList.add('connected');
+            document.getElementById('ws-label').textContent = 'Live';
+        };
+
+        ws.onclose = () => {
+            document.getElementById('ws-dot').classList.remove('connected');
+            document.getElementById('ws-label').textContent = 'Disconnected';
+            setTimeout(connectWS, 3000);
+        };
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.action === 'new_task') {
+                localTasks[msg.task._id] = msg.task;
+                showToast('New task added', 'green');
+            } else if (msg.action === 'Updated_task') {
+                localTasks[msg.task._id] = msg.task;
+                showToast('Task updated', 'green');
+            } else if (msg.action === 'Deleted_task') {
+                delete localTasks[msg.task._id];
+                showToast('Task deleted', 'red');
+            }
+            renderTasks();
+        };
+    }
+
+    // ── TASKS ─────────────────────────────────────────────
+    async function createTask() {
+        const title = document.getElementById('new-task-title').value.trim();
+        const priority = document.getElementById('new-task-priority').value;
+        const description = document.getElementById('new-task-desc').value.trim();
+        if (!title) return showToast('Task title required', 'red');
+
+        const res = await fetch(`${API}/task`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task: title, priority, description: description || null, completed: false })
+        });
+
+        if (!res.ok) return showToast('Failed to create task', 'red');
+        document.getElementById('new-task-title').value = '';
+        document.getElementById('new-task-desc').value = '';
+    }
+
+    async function deleteTask(id) {
+        const res = await fetch(`${API}/tasks/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) showToast('Failed to delete', 'red');
+    }
+
+    async function toggleComplete(id) {
+        const t = localTasks[id];
+        const res = await fetch(`${API}/tasks/${id}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: !t.completed })
+        });
+        if (!res.ok) showToast('Failed to update', 'red');
+    }
+
+    function openEdit(id) {
+        const t = localTasks[id];
+        editingId = id;
+        document.getElementById('edit-title').value = t.task || '';
+        document.getElementById('edit-desc').value = t.description || '';
+        document.getElementById('edit-priority').value = t.priority || 'medium';
+        document.getElementById('edit-completed').checked = t.completed || false;
+        document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('edit-modal').classList.add('hidden');
+        editingId = null;
+    }
+
+    async function saveEdit() {
+        const task= document.getElementById('edit-title').value.trim()
+        const desc = document.getElementById('edit-desc').value.trim();
+        const priority = document.getElementById('edit-priority').value;
+        const completed = document.getElementById('edit-completed').checked;
+
+        const res = await fetch(`${API}/tasks/${editingId}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({task: task || null, description: desc || null, priority, completed })
+        });
+
+        if (!res.ok) return showToast('Failed to update', 'red');
+        closeModal();
+    }
+
+    // ── RENDER ────────────────────────────────────────────
+    function renderTasks() {
+        const list = document.getElementById('task-list');
+        const all = Object.values(localTasks).sort((a, b) => new Date(b.Created_at) - new Date(a.Created_at));
+        const tasks = [...all.filter(t => !t.completed), ...all.filter(t => t.completed)];
+
+        if (tasks.length === 0) {
+            list.innerHTML = '<div class="empty-state">No tasks yet. Add one above.</div>';
+            return;
+        }
+
+        list.innerHTML = tasks.map(t => `
+            <div class="task-card ${t.completed ? 'completed' : ''}">
+                <input type="checkbox" class="task-checkbox" ${t.completed ? 'checked' : ''} onchange="toggleComplete('${t._id}')" />
+                <div class="task-body">
+                    <div class="task-title ${t.completed ? 'done' : ''}">${t.task}</div>
+                    ${t.description ? `<div class="task-desc">${t.description}</div>` : ''}
+                    <div class="task-meta">
+                        <span class="priority-badge ${t.priority}">${t.priority}</span>
+                        <span class="task-date">${t.Created_at ? new Date(t.Created_at).toLocaleDateString() : ''}</span>
+                    </div>
+                </div>
+                <div class="task-actions">
+                    <button class="icon-btn" onclick="openEdit('${t._id}')">Edit</button>
+                    <button class="icon-btn delete" onclick="deleteTask('${t._id}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ── HELPERS ───────────────────────────────────────────
+    function showError(msg) {
+        const el = document.getElementById('error-msg');
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+
+    function hideError() {
+        document.getElementById('error-msg').style.display = 'none';
+    }
+
+    function showToast(msg, type = '') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast ${type} show`;
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+</script>
+</body>
+</html>

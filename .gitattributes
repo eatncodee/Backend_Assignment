@@ -1,0 +1,2 @@
+# Ignore the frontend demo folder for GitHub language stats
+app/frontend/* linguist-vendored
