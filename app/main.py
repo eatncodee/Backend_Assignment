@@ -18,9 +18,9 @@ app.add_middleware(
       allow_methods=["*"],
       allow_headers=["*"],
   )
-app.include_router(task)
-app.include_router(user)
-app.include_router(auth)
+app.include_router(task , prefix="/api/v1")
+app.include_router(user , prefix="/api/v1")
+app.include_router(auth , prefix="/api/v1")
 app.include_router(ws)
 
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "frontend")), name="static")

@@ -19,7 +19,7 @@ async def login(creds:Logincreds):
     if not verify(creds.password,user["password"]):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Invalid Credentials")    
 
-    token=Oauth2.create_access_token(data={"email" : user["email"]})
+    token=Oauth2.create_access_token(data={"email" : user["email"], "role" : user.get("role", "user")})
 
     return {"access_token": token, "token_type":"bearer"}
 

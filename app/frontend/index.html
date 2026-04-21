@@ -330,6 +330,43 @@
             color: #444;
             font-size: 14px;
         }
+
+        .role-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .role-badge.admin { background: #3a1f6e; color: #a78bfa; border: 1px solid #6c63ff; }
+        .role-badge.user  { background: #1a2a1a; color: #4caf50; border: 1px solid #4caf50; }
+
+        .admin-panel {
+            background: #130f1f;
+            border: 1px solid #3a2a6e;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .admin-panel p { font-size: 13px; color: #888; }
+
+        button.danger {
+            padding: 8px 16px;
+            background: transparent;
+            color: #ff5252;
+            border: 1px solid #ff5252;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button.danger:hover { background: #ff5252; color: #fff; }
     </style>
 </head>
 <body>
@@ -358,6 +395,10 @@
         <div id="register-form" class="hidden">
             <input type="email" id="reg-email" placeholder="Email" />
             <input type="password" id="reg-password" placeholder="Password" />
+            <select id="reg-role">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
             <button class="primary" onclick="register()">Create Account</button>
         </div>
     </div>
@@ -367,13 +408,22 @@
 <div id="app-screen" class="hidden">
     <div class="app-header">
         <div>
-            <h1>My Tasks</h1>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                <h1 id="app-title">My Tasks</h1>
+                <span class="role-badge" id="role-badge"></span>
+            </div>
             <div class="ws-status">
                 <div class="ws-dot" id="ws-dot"></div>
                 <span id="ws-label">Connecting...</span>
             </div>
         </div>
         <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- ADMIN PANEL (admin only) -->
+    <div class="admin-panel hidden" id="admin-panel">
+        <p>Admin controls — manage all tasks across users</p>
+        <button class="danger" onclick="deleteAllTasks()">Delete All Tasks</button>
     </div>
 
     <!-- ADD TASK -->
@@ -421,11 +471,18 @@
 <div class="toast" id="toast"></div>
 
 <script>
-    const API = 'http://localhost:8000';
+    const API = 'http://localhost:8000/api/v1';
     let token = localStorage.getItem('token') || null;
+    let currentRole = localStorage.getItem('role') || 'user';
     let ws = null;
     let editingId = null;
     let localTasks = {};
+
+    function decodeJWT(t) {
+        try {
+            return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        } catch { return {}; }
+    }
 
     // ── INIT ──────────────────────────────────────────────
     if (token) showApp();
@@ -457,20 +514,24 @@
             return showError(errorMsg || 'Login failed');
         }
 
-        token = data.token;
+        token = data.access_token;
+        const payload = decodeJWT(token);
+        currentRole = payload.role || 'user';
         localStorage.setItem('token', token);
+        localStorage.setItem('role', currentRole);
         showApp();
     }
 
     async function register() {
         const email = document.getElementById('reg-email').value.trim();
         const password = document.getElementById('reg-password').value;
+        const role = document.getElementById('reg-role').value;
         if (!email || !password) return showError('Fill in all fields');
 
-        const res = await fetch(`${API}/user`, {
+        const res = await fetch(`${API}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password, role })
         });
 
         const data = await res.json();
@@ -485,7 +546,9 @@
 
     function logout() {
         localStorage.removeItem('token');
+        localStorage.removeItem('role');
         token = null;
+        currentRole = 'user';
         if (ws) ws.close();
         localTasks = {};
         document.getElementById('app-screen').classList.add('hidden');
@@ -496,12 +559,40 @@
     async function showApp() {
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('app-screen').classList.remove('hidden');
+        applyRoleUI();
         await loadTasks();
         connectWS();
     }
 
+    function applyRoleUI() {
+        const isAdmin = currentRole === 'admin';
+        document.getElementById('app-title').textContent = isAdmin ? 'Admin Dashboard' : 'My Tasks';
+
+        const badge = document.getElementById('role-badge');
+        badge.textContent = isAdmin ? 'ADMIN' : 'USER';
+        badge.className = `role-badge ${currentRole}`;
+
+        document.getElementById('admin-panel').classList.toggle('hidden', !isAdmin);
+    }
+
+    async function deleteAllTasks() {
+        if (!confirm('Delete ALL tasks for every user? This cannot be undone.')) return;
+        const res = await fetch(`${API}/all-tasks`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            localTasks = {};
+            renderTasks();
+            showToast('All tasks deleted', 'red');
+        } else {
+            showToast('Failed to delete all tasks', 'red');
+        }
+    }
+
     async function loadTasks() {
-        const res = await fetch(`${API}/alltasks`, {
+        const endpoint = currentRole === 'admin' ? '/admin/tasks' : '/alltasks';
+        const res = await fetch(`${API}${endpoint}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) return logout();

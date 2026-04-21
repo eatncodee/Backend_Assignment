@@ -55,3 +55,11 @@ async def get_current_user(token: str = Depends(oauth_scheme)):
     else :
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid")
         
+
+async def require_admin(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operation not permitted. Admin access required."
+        )
+    return current_user

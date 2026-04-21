@@ -10,7 +10,7 @@ user=APIRouter(tags=['User'])
 
 
 
-@user.post("/user")
+@user.post("/register")
 async def create(user:User):
     existing_user = await db.users.find_one({"email": user.email})
     
@@ -25,7 +25,7 @@ async def create(user:User):
     return {"message":f"user created with id :{result.inserted_id}"}
 
 @user.get("/me", response_model=UserOut)
-async def info(current_user : str = Depends(get_current_user)):    
+async def info(current_user : dict = Depends(get_current_user)):    
         current_user["_id"] = str(current_user["_id"]) 
         task_cursor = tasks.find({"email" : current_user["email"]}, {"_id": 0})
         task_list=await task_cursor.to_list()

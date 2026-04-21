@@ -1,6 +1,6 @@
 from fastapi import FastAPI,APIRouter,Request,HTTPException,status, Depends
 from app.schema.schema import Task,User,TaskUpdate
-from app.Oauth2 import get_current_user
+from app.Oauth2 import get_current_user, require_admin
 from app.db.db import db,tasks,users
 from datetime import datetime
 from bson import ObjectId
@@ -12,14 +12,14 @@ task=APIRouter(tags=['Tasks'])
 
 
 @task.get("/alltasks")
-async def get_tasks(current_user: str = Depends(get_current_user)):
+async def get_tasks(current_user: dict = Depends(get_current_user)):
     task_list=await tasks.find({"email": current_user["email"]}).to_list()
     for t in task_list:
         t["_id"] = str(t["_id"])
     return{"messge":"hi","tasks":task_list}
     
 @task.post("/task")
-async def add_tasks(task:Task, current_user: str = Depends(get_current_user)):
+async def add_tasks(task:Task, current_user: dict = Depends(get_current_user)):
     task_dict=task.model_dump()
     task_dict["email"]=current_user["email"]
     task_dict["Created_at"] = datetime.now()
@@ -30,7 +30,7 @@ async def add_tasks(task:Task, current_user: str = Depends(get_current_user)):
     return {"Message":"done","id":str(result.inserted_id)}
 
 @task.put("/tasks/{id}")
-async def update_task(task:TaskUpdate,id:str, current_user : str = Depends(get_current_user)):
+async def update_task(task:TaskUpdate,id:str, current_user : dict = Depends(get_current_user)):
     obj_id = ObjectId(id)
 
     result =await  tasks.find_one_and_update(
@@ -48,7 +48,7 @@ async def update_task(task:TaskUpdate,id:str, current_user : str = Depends(get_c
 
 
 @task.delete("/tasks/{id}")
-async def delete_task(id : str, current_user : str = Depends(get_current_user)):
+async def delete_task(id : str, current_user : dict = Depends(get_current_user)):
     obj_id=ObjectId(id)
 
     result=await tasks.find_one_and_delete({"_id" : obj_id, "email" : current_user["email"]})
@@ -61,3 +61,17 @@ async def delete_task(id : str, current_user : str = Depends(get_current_user)):
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found, try again")
 
 
+@task.get("/admin/tasks")
+async def get_all_tasks(admin : dict = Depends(require_admin)):
+    all_tasks= await tasks.find({}).to_list()
+    for task in all_tasks:
+        task["_id"] = str(task["_id"])
+        if "Created_at" in task:
+            task["Created_at"] = str(task["Created_at"])
+    return {"tasks":all_tasks}
+
+
+@task.delete("/all-tasks")
+async def delete_all_tasks(admin: dict = Depends(require_admin)):
+    await tasks.delete_many({})
+    return {"message": "All tasks deleted"}
