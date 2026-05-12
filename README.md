@@ -1,4 +1,4 @@
-# ⚡ Real-Time Task Monitor
+# ⚡ Real-Time Task Monitor with RBAC
 
 An asynchronous, high-performance backend service built with FastAPI that provides secure, real-time task management. This started as a personal project and was extended to include role-based access control (user/admin) and an admin dashboard — alongside the original OAuth2/JWT authentication, Redis-backed rate-limited login, and WebSocket-based real-time synchronization.
 
